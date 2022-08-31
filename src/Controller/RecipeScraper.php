@@ -2,20 +2,31 @@
 namespace App\Controller;
 use App\Services\RecipeHelperService;
 use Goutte\Client;
-use Symfony\Component\HttpClient\HttpClient;
-use GuzzleHttp\Client as GuzzleClient;
+use App\Database\DatabaseOperations;
+require_once 'src/Database/DatabaseOperations.php';
 
 class RecipeScraper
 {
+    private Client $client;
+    private RecipeHelperService $helper;
+    private DatabaseOperations $databaseOperations;
+    public function __construct() {
+        $this->client = new Client();
+        $this->helper = new RecipeHelperService($this->client);
+        $this->databaseOperations = new DatabaseOperations();
+    }
     public function getData()
     {
-        $client = new Client();
-        $myfileReqults = fopen("results1.txt", "w");
-        $helper = new RecipeHelperService($client);
-        //$crawler = $client->request('GET', 'https://eda.ru/recepty/vypechka-deserty/domashniy-chizkeyk-s-tvorogom-i-syrom-rikkota-54112');
-        //$helper->getAllRecipesData('recipes_links.txt');
-
-
-        file_put_contents('results1.txt', print_r($helper->getAllRecipesData('recipes_links.txt'), true));
+        $finalResults = $this->helper->getAllRecipesData('recipes_links.txt');
+        $this->databaseOperations->createDB();
+        $this->databaseOperations->createTable();
+        foreach ($finalResults as $oneRecipe){
+            if(array_key_exists("images",$oneRecipe))
+            {
+                $this->databaseOperations->insertDataDB($oneRecipe["link"], $oneRecipe["title"], $oneRecipe["description"], json_encode($oneRecipe["ingredients"], JSON_UNESCAPED_SLASHES), json_encode($oneRecipe["energy_value_per_serving"], JSON_UNESCAPED_SLASHES), json_encode($oneRecipe["instructions_steps"], JSON_UNESCAPED_SLASHES), json_encode($oneRecipe["images"], JSON_UNESCAPED_SLASHES));
+            } else {
+                $this->databaseOperations->insertDataDB($oneRecipe["link"], $oneRecipe["title"],$oneRecipe["description"], json_encode($oneRecipe["ingredients"], JSON_UNESCAPED_SLASHES), json_encode($oneRecipe["energy_value_per_serving"], JSON_UNESCAPED_SLASHES), json_encode($oneRecipe["instructions_steps"], JSON_UNESCAPED_SLASHES));
+            }
+        }
     }
 }

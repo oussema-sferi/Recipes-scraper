@@ -2,6 +2,7 @@
     "require": {
         "fabpot/goutte": "^4.0",
         "symfony/http-client": "^6.1",
-        "guzzlehttp/guzzle": "^7.4"
+        "guzzlehttp/guzzle": "^7.4",
+      "ext-pdo": "*"
     }
 }

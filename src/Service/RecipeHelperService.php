@@ -38,17 +38,14 @@ class RecipeHelperService
             $this->results["title"] = $recipeTitle;
         }
 
-
-
-        // author
-        if($crawler->filter('.emotion-847em2')->count() > 0) {
-            $recipeauthor = $crawler->filter('.emotion-847em2')->text();
-            $arr = explode(': ', $recipeauthor);
-            $recipeauthor = $arr[1];
-            $this->results["author"] = $recipeauthor;
+        // description
+        if($crawler->filter('.emotion-1x1q7i2')->count() > 0)
+        {
+            $recipeDescription = $crawler->filter('.emotion-1x1q7i2')->text();
+            $this->results["description"] = $recipeDescription;
+        } else {
+            $this->results["description"] = null;
         }
-
-
 
         // images
         if($crawler->filter('div .emotion-1voj7e4 > button')->count() > 0) {
@@ -61,12 +58,9 @@ class RecipeHelperService
                     }
                     $imageUrl = $node->filter('img')->attr('src');
                     $this->images[] = $imageUrl;
-                    //$path = "C:\Users\ITStacks\Downloads\recipes\";
                     $name = pathinfo(parse_url($imageUrl)['path'], PATHINFO_FILENAME);
                     $ext = pathinfo(parse_url($imageUrl)['path'], PATHINFO_EXTENSION);
                     $img = $newFolder . '/' . md5(uniqid()) . $name . '.' . $ext;
-                    /*var_dump($img);
-                    die();*/
                     file_put_contents($img, file_get_contents($imageUrl));
                 }
             });
@@ -81,7 +75,6 @@ class RecipeHelperService
         if($crawler->filter('.emotion-13pa6yw > .emotion-7yevpr')->count() > 0)
         {
             $crawler->filter('.emotion-13pa6yw > .emotion-7yevpr')->each(function ($node) {
-
                 $this->ingredients["ingredients"][] = [$node->filter('.emotion-bjn8wh')->text() => $node->filter('.emotion-15im4d2')->text()];
             });
         }
@@ -93,7 +86,7 @@ class RecipeHelperService
         {
             $crawler->filter('.emotion-13pa6yw > .emotion-8fp9e2')->each(function ($node) {
                 if ($node->filter('span')->count() > 0)
-                    $this->energies[$node->filter('span')->attr('itemprop')] = $node->text();
+                    $this->energies[trim($node->filter('span')->attr('itemprop'))] = trim($node->text());
             });
             $this->results["energy_value_per_serving"] = $this->energies;
         }
@@ -124,9 +117,6 @@ class RecipeHelperService
         foreach($contents as $line) {
             $this->counter++;
             $this->allResults[]= $this->getOneRecipeData(trim($line));
-            /*var_dump($this->allResults);
-            die();*/
-            //echo $line . "\n";
         }
         var_dump($this->counter);
         return $this->allResults;
