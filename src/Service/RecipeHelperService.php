@@ -15,10 +15,12 @@ class RecipeHelperService
     private array $energies;
     private array $ingredients;
     private array $instructionsSteps;
+    private array $results;
     private array $allResults = [];
     private int $counter = 0;
     public function getOneRecipeData($oneRecipe)
     {
+        $this->results = [];
         $this->images = [];
         $this->energies = [];
         $this->ingredients = [];
@@ -27,13 +29,13 @@ class RecipeHelperService
         die();*/
         $crawler = $this->client->request('GET', $oneRecipe);
         // link
-        $results["link"] = $oneRecipe;
+        $this->results["link"] = $oneRecipe;
 
         // title
         if($crawler->filter('.emotion-gl52ge')->count() > 0)
         {
             $recipeTitle = $crawler->filter('.emotion-gl52ge')->text();
-            $results["title"] = $recipeTitle;
+            $this->results["title"] = $recipeTitle;
         }
 
 
@@ -43,7 +45,7 @@ class RecipeHelperService
             $recipeauthor = $crawler->filter('.emotion-847em2')->text();
             $arr = explode(': ', $recipeauthor);
             $recipeauthor = $arr[1];
-            $results["author"] = $recipeauthor;
+            $this->results["author"] = $recipeauthor;
         }
 
 
@@ -52,11 +54,24 @@ class RecipeHelperService
         if($crawler->filter('div .emotion-1voj7e4 > button')->count() > 0) {
             $crawler->filter('div .emotion-1voj7e4 > button')->each(function ($node) {
                 if ($node->filter('img')->count() > 0) {
-                    $this->images[] = $node->filter('img')->attr('src');
+                    $path = 'C:/Users/ITStacks/Downloads/recipes/';
+                    $newFolder = $path . $this->results["title"];
+                    if(!is_dir($newFolder)){
+                        mkdir($newFolder);
+                    }
+                    $imageUrl = $node->filter('img')->attr('src');
+                    $this->images[] = $imageUrl;
+                    //$path = "C:\Users\ITStacks\Downloads\recipes\";
+                    $name = pathinfo(parse_url($imageUrl)['path'], PATHINFO_FILENAME);
+                    $ext = pathinfo(parse_url($imageUrl)['path'], PATHINFO_EXTENSION);
+                    $img = $newFolder . '/' . md5(uniqid()) . $name . '.' . $ext;
+                    /*var_dump($img);
+                    die();*/
+                    file_put_contents($img, file_get_contents($imageUrl));
                 }
             });
         }
-        if($this->images) $results["images"] = $this->images;
+        if($this->images) $this->results["images"] = $this->images;
 
         // ingredients
         if($crawler->filter('.emotion-1047m5l')->count() > 0)
@@ -71,7 +86,7 @@ class RecipeHelperService
             });
         }
 
-        $results["ingredients"] = $this->ingredients;
+        $this->results["ingredients"] = $this->ingredients;
 
         // energy value per serving
         if($crawler->filter('.emotion-13pa6yw > .emotion-8fp9e2')->count() > 0)
@@ -80,7 +95,7 @@ class RecipeHelperService
                 if ($node->filter('span')->count() > 0)
                     $this->energies[$node->filter('span')->attr('itemprop')] = $node->text();
             });
-            $results["energy_value_per_serving"] = $this->energies;
+            $this->results["energy_value_per_serving"] = $this->energies;
         }
 
 
@@ -93,12 +108,12 @@ class RecipeHelperService
                     $this->instructionsSteps[] = $node->text();
                 }
             });
-            $results["instructions_steps"] = $this->instructionsSteps;
+            $this->results["instructions_steps"] = $this->instructionsSteps;
         }
 
         /*print_r($results);
         die();*/
-        return $results;
+        return $this->results;
     }
 
     public function getAllRecipesData($file)
