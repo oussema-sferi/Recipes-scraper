@@ -5,13 +5,13 @@ use PDOException;
 class DatabaseOperations
 {
     const SERVER_NAME = "localhost";
-    const USERNAME = "root";
-    const PASSWORD = "";
+    const USERNAME = "novuususer";
+    const PASSWORD = "novuuspass2222";
+    const DATABASE_NAME = "myrecipesdb";
     private $conn;
     private int $recipesCounter = 0;
     public function __construct() {
-        $this->conn = new PDO("mysql:host=" . DatabaseOperations::SERVER_NAME . ";dbname=myrecipesdb", DatabaseOperations::USERNAME, DatabaseOperations::PASSWORD);
-        //$this->conn = new PDO("mysql:host=" . self::SERVER_NAME, self::USERNAME, self::PASSWORD);
+        $this->conn = new PDO("mysql:host=" . DatabaseOperations::SERVER_NAME . ";dbname=" . self::DATABASE_NAME, DatabaseOperations::USERNAME, DatabaseOperations::PASSWORD);
     }
     /*function createDB()
     {
@@ -30,7 +30,7 @@ class DatabaseOperations
     function createTable()
     {
         try {
-            $this->conn = new PDO("mysql:host=" . self::SERVER_NAME . ";dbname=myrecipesdb", self::USERNAME, self::PASSWORD);
+            $this->conn = new PDO("mysql:host=" . self::SERVER_NAME . ";dbname=" . self::DATABASE_NAME, self::USERNAME, self::PASSWORD);
             //Set the PDO error mode to exception
             $this->conn->exec("set names utf8mb4");
             $statement = 'CREATE TABLE IF NOT EXISTS recipe ( 
