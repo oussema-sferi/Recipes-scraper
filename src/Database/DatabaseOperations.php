@@ -10,9 +10,10 @@ class DatabaseOperations
     private $conn;
     private int $recipesCounter = 0;
     public function __construct() {
-        $this->conn = new PDO("mysql:host=" . self::SERVER_NAME, self::USERNAME, self::PASSWORD);
+        $this->conn = new PDO("mysql:host=" . DatabaseOperations::SERVER_NAME . ";dbname=myrecipesdb", DatabaseOperations::USERNAME, DatabaseOperations::PASSWORD);
+        //$this->conn = new PDO("mysql:host=" . self::SERVER_NAME, self::USERNAME, self::PASSWORD);
     }
-    function createDB()
+    /*function createDB()
     {
         try {
             //Set the PDO error mode to exception
@@ -25,7 +26,7 @@ class DatabaseOperations
         } catch (PDOException $e) {
             echo "Connection failed: " . $e->getMessage();
         }
-    }
+    }*/
     function createTable()
     {
         try {
@@ -55,6 +56,7 @@ class DatabaseOperations
     {
         try {
             $statement = $this->conn->prepare( "INSERT INTO recipe (link, title, small_description, ingredients, energy_per_serving, instructions, images) VALUES (:slink, :stitle, :sdescription, :singredients, :senergy, :sinstructions, :simages)");
+            $this->conn->exec("set names utf8mb4");
             $statement->execute([
                 'slink' => $link,
                 'stitle' => $title,

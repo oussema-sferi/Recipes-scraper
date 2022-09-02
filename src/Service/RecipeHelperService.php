@@ -1,16 +1,17 @@
 <?php
 namespace App\Services;
+use App\Database\DatabaseOperations;
 use Goutte\Client;
+use PDO;
+use PDOException;
 
 class RecipeHelperService
 {
+    const PATH = 'C:/Users/ITStacks/Downloads/recipes/';
+    private $db;
     public function __construct(private Client $client) {
-
+        $this->db = new DatabaseOperations();
     }
-    const DOMAIN = 'https://elements.envato.com/sign-in';
-    private array $brandsUrlsArray;
-    private array $productsUrlsArray;
-    private array $singlePageResults;
     private array $images;
     private array $energies;
     private array $ingredients;
@@ -18,6 +19,7 @@ class RecipeHelperService
     private array $results;
     private array $allResults = [];
     private int $counter = 0;
+    private string $newFolder;
     public function getOneRecipeData($oneRecipe)
     {
         $this->results = [];
@@ -25,9 +27,18 @@ class RecipeHelperService
         $this->energies = [];
         $this->ingredients = [];
         $this->instructionsSteps = [];
-        /*var_dump($oneRecipe);
-        die();*/
+
         $crawler = $this->client->request('GET', $oneRecipe);
+
+        // check if 404 not found page
+        if($crawler->filter('.emotion-10c8urk')->count() > 0)
+        {
+            if(trim($crawler->filter('.emotion-10c8urk')->text()) === "404")
+            {
+                return null;
+            }
+        }
+
         // link
         $this->results["link"] = $oneRecipe;
 
@@ -49,18 +60,19 @@ class RecipeHelperService
 
         // images
         if($crawler->filter('div .emotion-1voj7e4 > button')->count() > 0) {
+            $this->newFolder = self::PATH . $this->results["title"];
+            if(!is_dir($this->newFolder)){
+                mkdir($this->newFolder);
+            }
             $crawler->filter('div .emotion-1voj7e4 > button')->each(function ($node) {
                 if ($node->filter('img')->count() > 0) {
-                    $path = 'C:/Users/ITStacks/Downloads/recipes/';
-                    $newFolder = $path . $this->results["title"];
-                    if(!is_dir($newFolder)){
-                        mkdir($newFolder);
-                    }
                     $imageUrl = $node->filter('img')->attr('src');
+                    $givenImageSize = explode('/', $imageUrl)[5];
+                    $imageUrl = str_replace($givenImageSize, '250x-', $imageUrl);
                     $this->images[] = $imageUrl;
                     $name = pathinfo(parse_url($imageUrl)['path'], PATHINFO_FILENAME);
                     $ext = pathinfo(parse_url($imageUrl)['path'], PATHINFO_EXTENSION);
-                    $img = $newFolder . '/' . md5(uniqid()) . $name . '.' . $ext;
+                    $img = $this->newFolder . '/' . md5(uniqid()) . $name . '.' . $ext;
                     file_put_contents($img, file_get_contents($imageUrl));
                 }
             });
@@ -103,22 +115,55 @@ class RecipeHelperService
             });
             $this->results["instructions_steps"] = $this->instructionsSteps;
         }
-
-        /*print_r($results);
-        die();*/
         return $this->results;
     }
 
     public function getAllRecipesData($file)
     {
-        $client = new Client();
-        $filename = $file;
-        $contents = file($filename);
+        $limitNumberOfLinks = 200;
+        $contents = file($file);
         foreach($contents as $line) {
-            $this->counter++;
-            $this->allResults[]= $this->getOneRecipeData(trim($line));
+            if(isset($line))
+            {
+                $this->allResults[]= $this->getOneRecipeData(trim($line));
+                $this->counter++;
+                var_dump($this->counter);
+            }
+            if(($this->counter % $limitNumberOfLinks) === 0)
+            {
+                $this->newFile = $this->insertData($file);
+                $this->counter = 0;
+            }
         }
-        var_dump($this->counter);
-        return $this->allResults;
+        $this->insertionLoop();
+        file_put_contents($file, '');
+        $this->allResults = [];
+        //if($this->newFile !== null) $this->insertData($this->newFile);
+        //return $this->allResults;
+    }
+
+    public function insertData($file)
+    {
+        $contents = file($file);
+        $this->insertionLoop();
+        array_splice($contents, 0, $this->counter);
+        file_put_contents($file, $contents);
+        $this->allResults = [];
+        return $file;
+    }
+
+    public function insertionLoop()
+    {
+        foreach ($this->allResults as $oneRecipe){
+            if($oneRecipe !== null)
+            {
+                if(array_key_exists("images",$oneRecipe))
+                {
+                    $this->db->insertDataDB($oneRecipe["link"], $oneRecipe["title"], $oneRecipe["description"], json_encode($oneRecipe["ingredients"],  JSON_UNESCAPED_UNICODE), json_encode($oneRecipe["energy_value_per_serving"],  JSON_UNESCAPED_UNICODE), json_encode($oneRecipe["instructions_steps"],  JSON_UNESCAPED_UNICODE), json_encode($oneRecipe["images"], JSON_UNESCAPED_SLASHES));
+                } else {
+                    $this->db->insertDataDB($oneRecipe["link"], $oneRecipe["title"],$oneRecipe["description"], json_encode($oneRecipe["ingredients"], JSON_UNESCAPED_UNICODE), json_encode($oneRecipe["energy_value_per_serving"], JSON_UNESCAPED_UNICODE), json_encode($oneRecipe["instructions_steps"],  JSON_UNESCAPED_UNICODE));
+                }
+            }
+        }
     }
 }
